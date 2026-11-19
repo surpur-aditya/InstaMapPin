@@ -1,17 +1,15 @@
-//
-//  InstaMapPinApp.swift
-//  InstaMapPin
-//
-//  Created by Aditya Surpur on 17.11.26.
-//
-
 import SwiftUI
+import SwiftData
 
 @main
 struct InstaMapPinApp: App {
+    private let locationManager = LocationManager()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(locationManager)
         }
+        .modelContainer(for: Spot.self)
     }
 }

@@ -11,13 +11,15 @@ struct SaveSpotIntent: AppIntent {
     )
     static let openAppWhenRun = false
 
-    @Parameter(title: "Name", requestValueDialog: "What name?")
-    var name: SpotNameEntity
+    // Optional: when omitted, the name is auto-derived from the location
+    // (street / area / city / place), so hands-free capture needs no name.
+    @Parameter(title: "Name")
+    var name: SpotNameEntity?
 
-    @Parameter(title: "Category", requestValueDialog: "What category?")
+    @Parameter(title: "Category")
     var category: String?
 
-    @Parameter(title: "Note", requestValueDialog: "Add a note?")
+    @Parameter(title: "Note")
     var note: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -31,12 +33,12 @@ struct SaveSpotIntent: AppIntent {
 
         do {
             let spot = try await SpotCaptureService.capture(
-                name: name.name,
+                name: name?.name ?? "",
                 categories: categories,
                 note: note,
                 using: locationManager
             )
-            return .result(dialog: "Saved \(spot.name).")
+            return .result(dialog: "Saved \(spot.displayName).")
         } catch LocationError.permissionDenied {
             return .result(dialog: """
             I can't save a pin because location access is off. \

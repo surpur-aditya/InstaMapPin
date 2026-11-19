@@ -38,6 +38,15 @@ final class Spot {
 
     var isManualEntry: Bool { horizontalAccuracy < 0 }
 
+    /// A user-facing title that always has a value, even before the name has
+    /// been auto-derived from reverse geocoding.
+    var displayName: String {
+        if !name.isEmpty { return name }
+        if let address, !address.isEmpty { return address }
+        if needsAddressLookup { return "Dropped Pin" }
+        return "Untitled"
+    }
+
     /// Trims, removes blanks, and de-duplicates categories case-insensitively
     /// while preserving the original order and casing of the first occurrence.
     static func normalizedCategories(_ raw: [String]) -> [String] {

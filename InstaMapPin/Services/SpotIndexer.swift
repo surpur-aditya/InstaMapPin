@@ -27,11 +27,12 @@ enum SpotIndexer {
 
     private static func searchableItem(for spot: Spot) -> CSSearchableItem {
         let attributes = CSSearchableItemAttributeSet(contentType: .text)
-        attributes.title = spot.tag
-        attributes.contentDescription = [spot.note, spot.address]
+        attributes.title = spot.displayName
+        let categoryText = spot.categories.joined(separator: ", ")
+        attributes.contentDescription = [categoryText.isEmpty ? nil : categoryText, spot.note, spot.address]
             .compactMap { $0 }
             .joined(separator: " · ")
-        attributes.keywords = [spot.tag]
+        attributes.keywords = [spot.displayName] + spot.categories
         attributes.latitude = NSNumber(value: spot.latitude)
         attributes.longitude = NSNumber(value: spot.longitude)
 

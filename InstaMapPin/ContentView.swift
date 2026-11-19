@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 struct ContentView: View {
@@ -9,5 +10,6 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environment(LocationManager())
+        .environment(NetworkMonitor())
         .modelContainer(for: Spot.self, inMemory: true)
 }

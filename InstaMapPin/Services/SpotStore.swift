@@ -12,21 +12,41 @@ enum SpotStore {
         }
     }()
 
-    /// Returns the distinct tags currently in use, most-recent first.
+    /// Returns the distinct spot names currently in use, most-recent first.
     @MainActor
-    static func existingTags() -> [String] {
+    static func existingNames() -> [String] {
         let context = container.mainContext
-        var descriptor = FetchDescriptor<Spot>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
-        descriptor.propertiesToFetch = [\.tag]
+        let descriptor = FetchDescriptor<Spot>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         guard let spots = try? context.fetch(descriptor) else { return [] }
 
         var seen = Set<String>()
         var result: [String] = []
         for spot in spots {
-            let key = spot.tag.lowercased()
+            let key = spot.name.lowercased()
             if !key.isEmpty, !seen.contains(key) {
                 seen.insert(key)
-                result.append(spot.tag)
+                result.append(spot.name)
+            }
+        }
+        return result
+    }
+
+    /// Returns the distinct category tags currently in use, most-recent first.
+    @MainActor
+    static func existingCategories() -> [String] {
+        let context = container.mainContext
+        let descriptor = FetchDescriptor<Spot>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        guard let spots = try? context.fetch(descriptor) else { return [] }
+
+        var seen = Set<String>()
+        var result: [String] = []
+        for spot in spots {
+            for category in spot.categories {
+                let key = category.lowercased()
+                if !seen.contains(key) {
+                    seen.insert(key)
+                    result.append(category)
+                }
             }
         }
         return result

@@ -6,6 +6,8 @@
 //
 
 import Testing
+import CoreLocation
+import MapKit
 import Foundation
 @testable import InstaMapPin
 
@@ -45,6 +47,35 @@ struct SpotModelTests {
         let a = Spot(name: "A", latitude: 0, longitude: 0, horizontalAccuracy: 0)
         let b = Spot(name: "B", latitude: 0, longitude: 0, horizontalAccuracy: 0)
         #expect(a.id != b.id)
+    }
+
+    @Test func displayNameUsesNameThenAddressThenPlaceholder() {
+        let named = Spot(name: "Home", latitude: 0, longitude: 0, horizontalAccuracy: 0)
+        #expect(named.displayName == "Home")
+
+        let unnamed = Spot(name: "", latitude: 0, longitude: 0, horizontalAccuracy: -1, needsAddressLookup: false)
+        unnamed.address = "5 Main St"
+        #expect(unnamed.displayName == "5 Main St")
+
+        let pending = Spot(name: "", latitude: 0, longitude: 0, horizontalAccuracy: 0)
+        #expect(pending.displayName == "Dropped Pin")
+    }
+}
+
+@MainActor
+struct POITaggingTests {
+    @Test func mapsKnownPointOfInterestToTag() {
+        #expect(SpotEnrichmentService.category(for: .airport, existing: []) == "Airport")
+        #expect(SpotEnrichmentService.category(for: .foodMarket, existing: []) == "Supermarket")
+    }
+
+    @Test func reusesExistingTagSpelling() {
+        let tag = SpotEnrichmentService.category(for: .parking, existing: ["PARKING"])
+        #expect(tag == "PARKING")
+    }
+
+    @Test func unknownCategoryReturnsNil() {
+        #expect(SpotEnrichmentService.category(for: nil, existing: []) == nil)
     }
 }
 

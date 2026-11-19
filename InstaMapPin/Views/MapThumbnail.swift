@@ -56,11 +56,14 @@ final class MapSnapshotCache {
         options.size = size
 
         let snapshotter = MKMapSnapshotter(options: options)
-        let image = try? await snapshotter.start()
-        if let image {
-            cache.setObject(image.image, forKey: key)
-            return image.image
+        let image: UIImage? = await withCheckedContinuation { continuation in
+            snapshotter.start(with: .main) { snapshot, _ in
+                continuation.resume(returning: snapshot?.image)
+            }
         }
-        return nil
+        if let image {
+            cache.setObject(image, forKey: key)
+        }
+        return image
     }
 }

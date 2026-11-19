@@ -10,7 +10,7 @@ enum SpotExporter {
     }()
 
     static func csv(from spots: [Spot]) -> String {
-        let header = "id,createdAt,latitude,longitude,horizontalAccuracy,tag,note,address,weatherSummary"
+        let header = "id,createdAt,latitude,longitude,horizontalAccuracy,name,categories,note,address"
         let rows = spots.map { spot in
             [
                 spot.id.uuidString,
@@ -18,10 +18,10 @@ enum SpotExporter {
                 String(spot.latitude),
                 String(spot.longitude),
                 String(spot.horizontalAccuracy),
-                escapeCSV(spot.tag),
+                escapeCSV(spot.name),
+                escapeCSV(spot.categories.joined(separator: "; ")),
                 escapeCSV(spot.note ?? ""),
-                escapeCSV(spot.address ?? ""),
-                escapeCSV(spot.weatherSummary ?? "")
+                escapeCSV(spot.address ?? "")
             ].joined(separator: ",")
         }
         return ([header] + rows).joined(separator: "\n")
@@ -32,8 +32,11 @@ enum SpotExporter {
             var lines = ["""
               <wpt lat="\(spot.latitude)" lon="\(spot.longitude)">
                 <time>\(isoFormatter.string(from: spot.createdAt))</time>
-                <name>\(escapeXML(spot.tag))</name>
+                <name>\(escapeXML(spot.name))</name>
             """]
+            if !spot.categories.isEmpty {
+                lines.append("    <type>\(escapeXML(spot.categories.joined(separator: "; ")))</type>")
+            }
             if let note = spot.note, !note.isEmpty {
                 lines.append("    <desc>\(escapeXML(note))</desc>")
             }

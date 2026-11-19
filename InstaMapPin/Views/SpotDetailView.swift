@@ -1,6 +1,8 @@
+import AppIntents
 import MapKit
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct SpotDetailView: View {
     let spot: Spot
@@ -15,7 +17,7 @@ struct SpotDetailView: View {
     }
 
     private var appleMapsURL: URL? {
-        MapLinks.appleMapsURL(latitude: spot.latitude, longitude: spot.longitude, name: spot.name)
+        MapLinks.appleMapsURL(latitude: spot.latitude, longitude: spot.longitude, name: spot.displayName)
     }
 
     private var googleMapsURL: URL? {
@@ -23,7 +25,7 @@ struct SpotDetailView: View {
     }
 
     private var shareText: String {
-        MapLinks.shareText(latitude: spot.latitude, longitude: spot.longitude, name: spot.name)
+        MapLinks.shareText(latitude: spot.latitude, longitude: spot.longitude, name: spot.displayName)
     }
 
     var body: some View {
@@ -35,7 +37,7 @@ struct SpotDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(spot.name)
+        .navigationTitle(spot.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -47,16 +49,20 @@ struct SpotDetailView: View {
     }
 
     private var mapPreview: some View {
+        // Interactive so you can pinch-zoom and pan to look around the street.
         Map(initialPosition: .region(MKCoordinateRegion(
             center: coordinate,
             latitudinalMeters: 400,
             longitudinalMeters: 400
         ))) {
-            Marker(spot.name, coordinate: coordinate)
+            Marker(spot.displayName, coordinate: coordinate)
         }
-        .frame(height: 220)
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
+        }
+        .frame(height: 300)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .allowsHitTesting(false)
     }
 
     @ViewBuilder
@@ -70,7 +76,7 @@ struct SpotDetailView: View {
 
     private var displayFields: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(spot.name, systemImage: "mappin")
+            Label(spot.displayName, systemImage: "mappin")
                 .font(.headline)
             if !spot.categories.isEmpty {
                 categoryChips
@@ -115,7 +121,7 @@ struct SpotDetailView: View {
 
     private var editFields: some View {
         VStack(alignment: .leading, spacing: 14) {
-            labeledField("Name", placeholder: "Name", text: $nameDraft)
+            labeledField("Name", placeholder: "Auto-filled from location", text: $nameDraft)
             labeledField("Tags (comma-separated)", placeholder: "Supermarket, Groceries", text: $categoriesDraft)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Note")
@@ -141,8 +147,6 @@ struct SpotDetailView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 10) {
-            NavigateButton(latitude: spot.latitude, longitude: spot.longitude, name: spot.name)
-
             HStack(spacing: 10) {
                 if let url = appleMapsURL {
                     Link(destination: url) {
@@ -163,14 +167,35 @@ struct SpotDetailView: View {
                     }
                 }
             }
-            ShareLink(item: shareText) {
-                Label("Share Location", systemImage: "square.and.arrow.up")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.secondary.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            HStack(spacing: 10) {
+                Button {
+                    UIPasteboard.general.string = spot.address ?? coordinateString
+                } label: {
+                    Label(copyButtonTitle, systemImage: "doc.on.doc")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+
+                ShareLink(item: shareText) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
             }
         }
+    }
+
+    private var coordinateString: String {
+        String(format: "%.6f, %.6f", spot.latitude, spot.longitude)
+    }
+
+    private var copyButtonTitle: String {
+        spot.address == nil ? "Copy Coordinates" : "Copy Address"
     }
 
     private var accuracyText: String {
@@ -188,10 +213,8 @@ struct SpotDetailView: View {
     }
 
     private func saveEdits() {
-        let trimmedName = nameDraft.trimmingCharacters(in: .whitespaces)
-        if !trimmedName.isEmpty {
-            spot.name = trimmedName
-        }
+        // An empty name is allowed — the row falls back to the address.
+        spot.name = nameDraft.trimmingCharacters(in: .whitespaces)
         spot.categories = Spot.normalizedCategories(categoriesDraft.split(separator: ",").map(String.init))
         let trimmedNote = noteDraft.trimmingCharacters(in: .whitespaces)
         spot.note = trimmedNote.isEmpty ? nil : trimmedNote

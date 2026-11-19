@@ -1,15 +1,12 @@
-import CoreLocation
+import AppIntents
 import SwiftUI
 import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
-    @Environment(LocationManager.self) private var locationManager
 
     @Query(sort: \Spot.createdAt, order: .reverse) private var spots: [Spot]
-    @AppStorage("weatherEnabled") private var weatherEnabled = false
 
     @State private var csvURL: URL?
     @State private var gpxURL: URL?
@@ -18,8 +15,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                locationSection
-                weatherSection
                 exportSection
                 dataSection
             }
@@ -43,40 +38,6 @@ struct SettingsView: View {
     }
 
     // MARK: - Sections
-
-    private var locationSection: some View {
-        Section("Location Permission") {
-            LabeledContent("Status", value: statusText)
-            if locationManager.authorizationStatus == .notDetermined {
-                Button("Allow Location Access") {
-                    locationManager.requestWhenInUseAuthorization()
-                }
-            } else if locationManager.authorizationStatus == .authorizedWhenInUse {
-                Button("Upgrade to Always (better Siri capture)") {
-                    locationManager.requestAlwaysAuthorization()
-                }
-                Text("Always lets Siri save a pin in the background without opening the app first.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if locationManager.isDenied {
-                Button("Open Settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        openURL(url)
-                    }
-                }
-            }
-        }
-    }
-
-    private var weatherSection: some View {
-        Section {
-            Toggle("Save weather with each pin", isOn: $weatherEnabled)
-        } header: {
-            Text("Weather")
-        } footer: {
-            Text("Off by default. When on, a short weather summary is added after a pin is saved. Your location is never shared off device.")
-        }
-    }
 
     private var exportSection: some View {
         Section {
@@ -113,17 +74,6 @@ struct SettingsView: View {
 
     // MARK: - Helpers
 
-    private var statusText: String {
-        switch locationManager.authorizationStatus {
-        case .notDetermined: return "Not set"
-        case .authorizedWhenInUse: return "While Using the App"
-        case .authorizedAlways: return "Always"
-        case .denied: return "Denied"
-        case .restricted: return "Restricted"
-        @unknown default: return "Unknown"
-        }
-    }
-
     private func regenerateExports() {
         let temp = FileManager.default.temporaryDirectory
         let csv = temp.appendingPathComponent("InstaMapPin-Spots.csv")
@@ -151,6 +101,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
-        .environment(LocationManager())
         .modelContainer(for: Spot.self, inMemory: true)
 }

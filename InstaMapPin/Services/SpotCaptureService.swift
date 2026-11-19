@@ -35,7 +35,7 @@ enum SpotCaptureService {
         guard status == .authorizedWhenInUse || status == .authorizedAlways else {
             throw LocationError.permissionDenied
         }
-        let location = try await locationManager.captureLocation()
+        let location = try await locationManager.quickLocation()
         return insert(
             name: name,
             categories: categories,
@@ -85,15 +85,50 @@ enum SpotCaptureService {
         }
         let coordinate = mapItem.location.coordinate
         let address = mapItem.address?.shortAddress ?? mapItem.address?.fullAddress
+
+        // Derive a name / category from the geocoded place when the user left them blank.
+        let resolvedName = name.trimmingCharacters(in: .whitespaces).isEmpty
+            ? (mapItem.name ?? address ?? "")
+            : name
+        var resolvedCategories = categories
+        if resolvedCategories.isEmpty,
+           let category = SpotEnrichmentService.category(
+               for: mapItem.pointOfInterestCategory,
+               existing: SpotStore.existingCategories()
+           ) {
+            resolvedCategories = [category]
+        }
+
         return insert(
-            name: name,
-            categories: categories,
+            name: resolvedName,
+            categories: resolvedCategories,
             note: note,
             latitude: coordinate.latitude,
             longitude: coordinate.longitude,
             horizontalAccuracy: -1,
             address: address,
             needsAddressLookup: address == nil
+        )
+    }
+
+    /// Saves a spot from explicit latitude / longitude values.
+    @discardableResult
+    static func addFromCoordinates(
+        latitude: Double,
+        longitude: Double,
+        name: String,
+        categories: [String],
+        note: String?
+    ) -> Spot {
+        insert(
+            name: name,
+            categories: categories,
+            note: note,
+            latitude: latitude,
+            longitude: longitude,
+            horizontalAccuracy: -1,
+            address: nil,
+            needsAddressLookup: true
         )
     }
 

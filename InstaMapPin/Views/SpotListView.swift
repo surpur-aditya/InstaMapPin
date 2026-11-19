@@ -2,6 +2,7 @@ import CoreLocation
 import CoreSpotlight
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct SpotListView: View {
     @Environment(\.modelContext) private var modelContext
